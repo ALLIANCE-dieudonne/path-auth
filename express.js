@@ -1,3 +1,4 @@
+require('dotenv').config();
 const path = require('path');
 const express = require('express');
 const app = express();
@@ -5,8 +6,14 @@ const verifyJWT = require('./middleWare/verifyJWT');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const corsOption = require('./config/corsOptions');
+const mongoose = require('mongoose');
 
+const coonectDB = require('./config/dbConn');
 const PORT = process.env.PORT || 4000 ;
+
+//coonect to the mongoDB
+coonectDB();
+
 // const fs = require('fs');
 //Cross Orgin Resourse Sharing
 // app.use(cors(corsOption));
@@ -25,9 +32,9 @@ app.use('/logout',require('./routes/logout'));
 app.use(verifyJWT)
 app.use('/employees', require('./routes/employees'))
 
-
-app.listen(PORT,()=>{
-    console.log(`The server is running on port ${PORT}`)
-});
+mongoose.connection.once('open', ()=>{
+    console.log(`Successfully connected to mongo db`);
+    app.listen(PORT,()=>{console.log(`The server is running on port ${PORT}`)});
+})
 
 

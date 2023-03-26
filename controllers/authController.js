@@ -1,23 +1,17 @@
-const userDB = {
-    users: require('../model/users.json'),
-    setUsers: function (data) { this.users = data }
-}
-
-const path = require('path');
+const User = require('../model/User');
 const bcrypt = require('bcrypt');
 const fs = require('fs');
 const fsPromises = require('fs').promises
 
 const jwt = require('jsonwebtoken');
-require('dotenv').config();
 
 const loginHandle = async (req, res) => {
     const { user, pwd } = req.body;
 
-    if (!user || !pwd) { res.sendStatus(401).json({ "message": `username and password are required` }) }
+    if (!user || !pwd) { res.status(400).json({ "message": `username and password are required` }) }
 
     //find user
-    const foundUser = userDB.users.find(person => person.username === user);
+    const foundUser = await User.findOne({username : user}).exec();
     if (!foundUser) res.sendStatus(401);// unauthprized
 
     // verify password
@@ -35,7 +29,7 @@ const loginHandle = async (req, res) => {
                 }
             },
             process.env.ACCESS_TOKEN_SECRET,
-            { expiresIn: '30s' }
+            { expiresIn: '1d' }
         )
         const refreshToken = jwt.sign(
             { "username": foundUser.username },
@@ -44,15 +38,10 @@ const loginHandle = async (req, res) => {
         )
 
         //storing refresh token with the current user.
-        const otherUsers = userDB.users.filter(person => person.username !== foundUser.username);
-        const currentUser = { ...foundUser, refreshToken };
-        userDB.setUsers([...otherUsers, currentUser]);
-
-        await fsPromises.writeFile(
-            path.join(__dirname, '..', 'model', 'users.json'),
-            JSON.stringify(userDB.users)
-        )
-        res.cookie('jwt', refreshToken, { httpOnly: true, secure: true, maxAge: 24 * 60 * 60 * 1000 })
+        foundUser.refreshToken = refreshToken;
+        const result = await foundUser.save();
+        console.log(result);
+        res.cookie('jwt', refreshToken, { httpOnly: true, maxAge: 24 * 60 * 60 * 1000 });
         res.status(200).json({ accessToken })
 
     } else { return res.sendStatus(401) }

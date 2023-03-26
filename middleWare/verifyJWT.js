@@ -1,10 +1,9 @@
 const jwt = require('jsonwebtoken');
-require('dotenv').config();
 
 const verifyJWT = (req, res, next) => {
     // console.log(req.headers);
     const authHeader = req.headers.authorization || req.headers.Authorization;
-    if (!authHeader?.startWith('Bearer ')) { return res.sendStatus(401); }
+    if (!authHeader?.startsWith('Bearer ')) { return res.sendStatus(401); }
     const token = authHeader.split(' ')[1];
 
     jwt.verify(
